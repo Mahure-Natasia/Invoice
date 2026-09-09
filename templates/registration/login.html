@@ -1,0 +1,8 @@
+{% extends 'registration/auth_base.html' %}
+{% block title %}Log In{% endblock %}{% block login_active %}class="active" aria-current="page"{% endblock %}
+{% block content %}<header class="auth-heading"><h2>Welcome Back</h2><p>Log in to continue</p></header>
+<form method="post" class="auth-form">{% csrf_token %}<input type="hidden" name="next" value="{{ next }}">{{ form.non_field_errors }}
+<label class="auth-input"><svg><use href="#mail"/></svg><input name="username" autocomplete="username" placeholder="Email address" aria-label="Email address or username" value="{{ form.username.value|default:'' }}" required></label>{{ form.username.errors }}
+<label class="auth-input"><svg><use href="#lock"/></svg><input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" required><button class="password-toggle" type="button" data-password="login-password" aria-label="Show password"><svg><use href="#eye"/></svg></button></label>{{ form.password.errors }}
+<a class="forgot" href="{% url 'password_reset' %}">Forgot password?</a><button class="auth-submit" type="submit">Log In <span aria-hidden="true">&#8594;</span></button></form>{% endblock %}
+{% block footer %}<p class="auth-footer">Don&#8217;t have an account? <a href="{% url 'register' %}">Sign Up</a></p>{% endblock %}

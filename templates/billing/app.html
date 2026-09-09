@@ -1,0 +1,506 @@
+{% load static %}
+<!doctype html>
+<html lang="en" class="dashboard-view">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EIEAAS Invoicing</title>
+<link rel="stylesheet" href="{% static 'billing/app.css' %}?v=dashboard-original-4"></head>
+<body>
+<div class="shell">
+<aside class="side">
+<div class="brand">
+<span class="mark">✦</span>
+<span>
+<b>EIEAAS</b>
+<small>SMEs DIGITAL ECOSYSTEM</small>
+</span>
+</div>
+<section class="side-profile">
+<div class="avatar" id="sidebarAvatar">
+<div class="avatar-fallback">MB</div>
+</div>
+<strong id="sidebarBusiness">My Business</strong>
+<small id="sidebarEmail">Simple invoicing for your SME</small>
+</section>
+<button class="menu" id="menu">☰</button>
+<nav class="nav" id="nav">
+<button class="active" data-page="dashboard">
+<i>⌂</i>
+<span>Dashboard</span>
+</button>
+<button data-page="invoices">
+<i>▤</i>
+<span>Invoices</span>
+</button>
+<button data-page="create">
+<i>＋</i>
+<span>Create Invoice</span>
+</button>
+<button data-page="customers">
+<i>♙</i>
+<span>Customers</span>
+</button>
+<button data-page="payments">
+<i>R</i>
+<span>Payments</span>
+</button>
+<button data-page="reports">
+<i>↗</i>
+<span>Reports</span>
+</button>
+<button data-page="profile">
+<i>▥</i>
+<span>Business Profile</span>
+</button>
+<button data-page="settings">
+<i>⚙</i>
+<span>Settings</span>
+</button>
+<form class="sidebar-logout" action="{% url 'logout' %}" method="post">{% csrf_token %}<button type="submit" aria-label="Log out"><i aria-hidden="true">&#8618;</i><span>Log out</span></button></form>
+</nav>
+<div class="side-foot">
+<b>BUSINESS SNAPSHOT</b>
+<div class="side-metrics">
+<div class="side-metric">
+<strong id="sideInvoices">0</strong>
+<span>INVOICES</span>
+</div>
+<div class="side-metric">
+<strong id="sideOutstanding">R0</strong>
+<span>OUTSTANDING</span>
+</div>
+</div>
+</div>
+</aside>
+<div class="main">
+<header class="top">
+<h1 id="pageTitle">Dashboard</h1>
+<div class="top-actions">
+<button class="btn light" onclick="showPage('customers');openCustomer()">＋ Customer</button>
+<button class="btn" onclick="newInvoice()">＋ New Invoice</button>
+</div>
+</header>
+<main class="content">
+<section class="page active" id="dashboard">
+<div class="welcome-banner">
+<div class="welcome-copy">
+<span class="welcome-kicker">WELCOME BACK</span>
+<h2>Good Morning, <span id="welcomeName">My Business</span> 👋</h2>
+<p>Here’s what’s happening with your invoices and payments today.</p>
+<button class="btn" onclick="newInvoice()">＋ Create an Invoice</button>
+</div>
+<img src="/static/assets/dashboard-invoicing-illustration.png" alt="Small-business owner managing invoices">
+</div>
+<div class="stats" id="stats">
+</div>
+<div class="panel">
+<div class="panel-head">
+<h3>Recent Invoices</h3>
+<button class="btn light" onclick="showPage('invoices')">View all</button>
+</div>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Invoice</th>
+<th>Customer</th>
+<th>Date</th>
+<th>Due</th>
+<th>Amount</th>
+<th>Status</th>
+<th>
+</th>
+</tr>
+</thead>
+<tbody id="recentBody">
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="page" id="invoices">
+<div class="welcome">
+<div>
+<h2>Invoices</h2>
+<p>Create, send and track every invoice.</p>
+</div>
+<button class="btn" onclick="newInvoice()">＋ Create Invoice</button>
+</div>
+<div class="panel">
+<div class="filters">
+<input id="invoiceSearch" placeholder="Search invoice or customer…">
+<button class="filter on" data-filter="all">All</button>
+<button class="filter" data-filter="Paid">Paid</button>
+<button class="filter" data-filter="Unpaid">Unpaid</button>
+<button class="filter" data-filter="Overdue">Overdue</button>
+<button class="filter" data-filter="Draft">Draft</button>
+<button class="filter" data-filter="Cancelled">Cancelled</button>
+<input id="invoiceStart" type="date" aria-label="Invoices from"><input id="invoiceEnd" type="date" aria-label="Invoices through">
+</div>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Invoice</th>
+<th>Customer</th>
+<th>Issued</th>
+<th>Due</th>
+<th>Total</th>
+<th>Balance</th>
+<th>Status</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="invoiceBody">
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="page" id="create">
+<div class="welcome">
+<div>
+<h2 id="invoiceFormTitle">Create Invoice</h2>
+<p>Complete the details and check totals before saving.</p>
+</div>
+</div>
+<form id="invoiceForm" class="invoice-form">
+<div>
+<div class="panel" style="margin-top:0">
+<div class="form-grid">
+<div class="field">
+<label>INVOICE NUMBER</label>
+<input id="invoiceNo" readonly aria-label="Automatically generated invoice number">
+</div>
+<div class="field">
+<label>CUSTOMER</label>
+<select id="invoiceCustomer" required>
+</select>
+</div>
+<div class="field">
+<label>INVOICE DATE</label>
+<input id="invoiceDate" type="date" required>
+</div>
+<div class="field">
+<label>DUE DATE</label>
+<input id="dueDate" type="date" required>
+</div>
+</div>
+</div>
+<div class="panel">
+<div class="panel-head">
+<h3>Products & Services</h3>
+<button type="button" class="btn light" onclick="addLine()">＋ Add item</button>
+</div>
+<div class="line-head">
+<span>Description</span>
+<span>Qty</span>
+<span>Unit price</span>
+<span>Total</span>
+<span>
+</span>
+</div>
+<div id="lines">
+</div>
+</div>
+<div class="panel">
+<div class="form-grid">
+<div class="field">
+<label>PAYMENT / BANKING DETAILS</label>
+<textarea id="bankDetails" rows="4">
+</textarea>
+</div>
+<div class="field">
+<label>NOTES</label>
+<textarea id="invoiceNotes" rows="4">
+</textarea>
+</div>
+<div class="field full"><label>PAYMENT TERMS</label><textarea id="invoiceTerms" rows="3"></textarea></div>
+</div>
+</div>
+</div>
+<aside>
+<div class="panel" style="margin-top:0">
+<h3>Invoice Summary</h3>
+<div class="field">
+<label>VAT / TAX %</label>
+<input id="taxRate" type="number" min="0" step=".01">
+</div>
+<div class="field" style="margin-top:12px">
+<label>DISCOUNT (R)</label>
+<input id="discount" type="number" min="0" step=".01" value="0">
+</div>
+<div class="summary">
+<div class="sum-row">
+<span>Subtotal</span>
+<b id="subtotal">R0.00</b>
+</div>
+<div class="sum-row">
+<span>VAT</span>
+<b id="tax">R0.00</b>
+</div>
+<div class="sum-row">
+<span>Discount</span>
+<b id="discountView">R0.00</b>
+</div>
+<div class="sum-row total">
+<span>Total</span>
+<span id="total">R0.00</span>
+</div>
+</div>
+<div style="display:grid;gap:8px;margin-top:15px">
+<button class="btn" type="submit">Save Invoice</button>
+<button class="btn light" type="button" onclick="saveDraft()">Save as Draft</button>
+</div>
+</div>
+</aside>
+</form>
+</section>
+<section class="page" id="customers">
+<div class="welcome">
+<div>
+<h2>Customers</h2>
+<p>Keep customer contact and billing details together.</p>
+</div>
+<button class="btn" onclick="openCustomer()">＋ Add Customer</button>
+</div>
+<div class="panel">
+<div class="filters"><input id="customerSearch" placeholder="Search name, company or email"></div><div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Business</th>
+<th>Email</th>
+<th>Phone</th>
+<th>Address</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="customerBody">
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="page" id="payments">
+<div class="welcome">
+<div>
+<h2>Payments</h2>
+<p>Record full or partial payments and monitor balances.</p>
+</div>
+<button class="btn" onclick="openPayment()">＋ Record Payment</button>
+</div>
+<div class="panel">
+<div class="filters"><input id="paymentSearch" placeholder="Search invoice or customer"><select id="paymentMethod"><option value="">All methods</option><option>EFT</option><option>Bank Transfer</option><option>EFT / Bank Transfer</option><option>Cash</option><option>Card</option><option>Other</option></select><input id="paymentStart" type="date" aria-label="Payments from"><input id="paymentEnd" type="date" aria-label="Payments through"></div><div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Invoice</th>
+<th>Customer</th>
+<th>Method</th>
+<th>Amount</th>
+</tr>
+</thead>
+<tbody id="paymentBody">
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="page" id="reports">
+<div class="welcome">
+<div>
+<h2>Reports</h2>
+<p>A simple overview of invoices and payments.</p>
+</div>
+</div>
+<div class="filters"><input id="reportStart" type="date" aria-label="Reports from"><input id="reportEnd" type="date" aria-label="Reports through"><button class="btn light" onclick="renderReports()">Apply dates</button></div><div class="report-grid" id="reportStats">
+</div>
+<div class="panel">
+<h3>Monthly Revenue (payments received)</h3>
+<div id="topCustomers"></div><div class="chart" id="chart">
+</div>
+</div>
+</section>
+<section class="page" id="profile">
+<div class="welcome">
+<div>
+<h2>Business Profile</h2>
+<p>These details appear on your invoice.</p>
+</div>
+</div>
+<form class="panel form-grid" id="profileForm">
+<div class="full">
+<div class="profile-logo" id="logoView">LOGO</div>
+<input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" style="margin-top:10px">
+</div>
+<div class="field">
+<label>BUSINESS NAME</label>
+<input name="name">
+</div>
+<div class="field">
+<label>REGISTRATION NUMBER</label>
+<input name="registration">
+</div>
+<div class="field">
+<label>VAT NUMBER</label>
+<input name="vat">
+</div>
+<div class="field">
+<label>PHONE</label>
+<input name="phone">
+</div>
+<div class="field">
+<label>EMAIL</label>
+<input name="email" type="email">
+</div>
+<div class="field">
+<label>ADDRESS</label>
+<input name="address">
+</div>
+<div class="field full">
+<label>BANKING DETAILS</label>
+<textarea name="banking" rows="4">
+</textarea>
+</div>
+<div class="field"><label>OWNER NAME</label><input name="owner_name"></div><div class="field"><label>BANK NAME</label><input name="bank_name"></div><div class="field"><label>ACCOUNT NAME</label><input name="account_name"></div><div class="field"><label>ACCOUNT NUMBER</label><input name="account_number"></div><div class="field"><label>BRANCH CODE</label><input name="branch_code"></div>
+<div class="full">
+<button class="btn">Save Business Profile</button>
+</div>
+</form>
+</section>
+<section class="page" id="settings">
+<div class="welcome">
+<div>
+<h2>Settings</h2>
+<p>Set sensible defaults for new invoices.</p>
+</div>
+</div>
+<form class="panel form-grid" id="settingsForm">
+<div class="field">
+<label>INVOICE PREFIX</label>
+<input name="prefix" value="INV-">
+</div>
+<div class="field">
+<label>NEXT INVOICE NUMBER</label>
+<input name="next" type="number" value="1001">
+</div>
+<div class="field">
+<label>CURRENCY</label>
+<select name="currency">
+<option value="ZAR">South African Rand (R / ZAR)</option>
+<option value="USD">US Dollar ($ / USD)</option>
+</select>
+</div>
+<div class="field">
+<label>VAT PERCENTAGE</label>
+<input name="vat" type="number" value="15" step=".01">
+</div>
+<div class="field full">
+<label>DEFAULT PAYMENT TERMS</label>
+<textarea name="terms">Payment is due within 30 days. Please use the invoice number as your payment reference.</textarea>
+</div>
+<div class="full">
+<button class="btn">Save Settings</button>
+</div>
+</form>
+</section>
+</main>
+</div>
+</div>
+<div class="modal" id="customerModal">
+<div class="dialog">
+<div class="dialog-head">
+<h2 id="customerTitle">Add Customer</h2>
+<button class="close" onclick="closeModal('customerModal')">×</button>
+</div>
+<form id="customerForm" class="form-grid">
+<input type="hidden" name="id">
+<div class="field">
+<label>CONTACT NAME</label>
+<input name="name" required>
+</div>
+<div class="field">
+<label>BUSINESS NAME</label>
+<input name="business">
+</div>
+<div class="field">
+<label>EMAIL</label>
+<input name="email" type="email" required>
+</div>
+<div class="field">
+<label>PHONE NUMBER</label>
+<input name="phone">
+</div>
+<div class="field full">
+<label>ADDRESS</label>
+<textarea name="address" rows="3">
+</textarea>
+</div>
+<div class="field"><label>VAT NUMBER</label><input name="vat_number"></div><div class="field"><label>NOTES</label><input name="notes"></div>
+<div class="modal-actions full">
+<button type="button" class="btn light" onclick="closeModal('customerModal')">Cancel</button>
+<button class="btn">Save Customer</button>
+</div>
+</form>
+</div>
+</div>
+<div class="modal" id="paymentModal">
+<div class="dialog">
+<div class="dialog-head">
+<h2>Record Payment</h2>
+<button class="close" onclick="closeModal('paymentModal')">×</button>
+</div>
+<form id="paymentForm" class="form-grid">
+<div class="field full">
+<label>INVOICE</label>
+<select name="invoice" required>
+</select>
+</div>
+<div class="field">
+<label>PAYMENT DATE</label>
+<input name="date" type="date" required>
+</div>
+<div class="field">
+<label>PAYMENT METHOD</label>
+<select name="method">
+<option>EFT / Bank Transfer</option>
+<option>Cash</option>
+<option>Card</option>
+<option>Other</option>
+</select>
+</div>
+<div class="field full">
+<label>AMOUNT PAID</label>
+<input name="amount" type="number" min=".01" step=".01" required>
+</div>
+<div class="field"><label>REFERENCE</label><input name="reference"></div><div class="field"><label>NOTES</label><input name="notes"></div>
+<div class="modal-actions full">
+<button type="button" class="btn light" onclick="closeModal('paymentModal')">Cancel</button>
+<button class="btn">Record Payment</button>
+</div>
+</form>
+</div>
+</div>
+<div class="modal" id="previewModal">
+<div class="dialog wide">
+<div class="dialog-head">
+<h2>Invoice Preview</h2>
+<button class="close" onclick="closeModal('previewModal')">×</button>
+</div>
+<div class="invoice-paper" id="invoicePaper">
+</div>
+<div class="modal-actions">
+<button class="btn light" id="emailBtn">Email</button>
+<button class="btn light" id="whatsappBtn">WhatsApp</button>
+<button class="btn" onclick="printCurrentInvoice()">Print / Save PDF</button>
+</div>
+</div>
+</div>
+{{ initial_state|json_script:"initial-state" }}
+<form hidden id="csrfForm">{% csrf_token %}</form>
+<script src="{% static 'billing/app.js' %}" defer></script></body>
+</html>
