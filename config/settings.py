@@ -3,8 +3,9 @@ from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+PRODUCTION = os.getenv('DJANGO_ENV') == 'production' or os.getenv('RENDER', '').lower() == 'true'
 # A small .env reader keeps local setup dependency-free; process variables win.
-if (BASE_DIR / '.env').exists():
+if not PRODUCTION and (BASE_DIR / '.env').exists():
     for line in (BASE_DIR / '.env').read_text().splitlines():
         if line.strip() and not line.lstrip().startswith('#') and '=' in line:
             key, value = line.split('=', 1)
@@ -25,7 +26,12 @@ TEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIR
               'APP_DIRS': True, 'OPTIONS': {'context_processors': ['django.template.context_processors.request',
               'django.contrib.auth.context_processors.auth', 'django.contrib.messages.context_processors.messages']}}]
 WSGI_APPLICATION = 'config.wsgi.application'
-DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3', 'OPTIONS': {'timeout': 20}}}
+import dj_database_url
+DATABASE_URL = os.getenv('DATABASE_URL', '')
+DATABASES = {'default': dj_database_url.parse(DATABASE_URL, conn_max_age=60, conn_health_checks=True)} if DATABASE_URL else {
+    'default': {'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': os.getenv('DJANGO_SQLITE_PATH', str(BASE_DIR / 'db.sqlite3')),
+                'OPTIONS': {'timeout': 20}}}
 AUTH_PASSWORD_VALIDATORS = [{'NAME': 'django.contrib.auth.password_validation.' + name} for name in
     ['UserAttributeSimilarityValidator', 'MinimumLengthValidator', 'CommonPasswordValidator', 'NumericPasswordValidator']]
 LANGUAGE_CODE = 'en-za'
@@ -58,3 +64,26 @@ SECURE_HSTS_SECONDS = int(os.getenv('DJANGO_HSTS_SECONDS', '0' if DEBUG else '31
 SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv('DJANGO_HSTS_INCLUDE_SUBDOMAINS', 'False').lower() == 'true'
 SECURE_HSTS_PRELOAD = os.getenv('DJANGO_HSTS_PRELOAD', 'False').lower() == 'true'
 CSRF_TRUSTED_ORIGINS = [x for x in os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if x]
+
+# Render terminates HTTPS before forwarding requests to Gunicorn.
+if PRODUCTION:
+    if DEBUG:
+        raise ImproperlyConfigured('DJANGO_DEBUG must be False in production.')
+    if not DATABASE_URL or DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
+        raise ImproperlyConfigured('Production requires a separate Invoice PostgreSQL DATABASE_URL.')
+    # Never run Invoice migrations against the protected Saloon database.
+    db = DATABASES['default']
+    if any('saloon' in str(db.get(key, '')).lower() for key in ('NAME', 'USER', 'HOST')) or 'dpg-da14jt49v7es73aip03g' in str(db.get('HOST', '')):
+        raise ImproperlyConfigured('The Saloon database is off-limits to Invoice.')
+    if len(SECRET_KEY) < 50 or len(set(SECRET_KEY)) < 5 or SECRET_KEY.startswith('django-insecure-'):
+        raise ImproperlyConfigured('Production requires a strong generated DJANGO_SECRET_KEY.')
+    ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()]
+    render_host = os.getenv('RENDER_EXTERNAL_HOSTNAME', '')
+    if render_host:
+        ALLOWED_HOSTS.append(render_host)
+        CSRF_TRUSTED_ORIGINS.append('https://' + render_host)
+    if not ALLOWED_HOSTS or '*' in ALLOWED_HOSTS:
+        raise ImproperlyConfigured('Set explicit production hosts or RENDER_EXTERNAL_HOSTNAME.')
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_REDIRECT_EXEMPT = [r'^health/$']
+    STORAGES['default'] = {'BACKEND': 'billing.storage.DatabaseStorage'}

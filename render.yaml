@@ -1,0 +1,26 @@
+# Database creation requires separate approval; this Blueprint creates only Invoice web.
+services:
+  - type: web
+    name: invoice
+    runtime: python
+    plan: free
+    region: oregon
+    repo: https://github.com/Mahure-Natasia/Invoice
+    branch: main
+    autoDeployTrigger: "off"
+    buildCommand: bash build.sh
+    startCommand: bash start.sh
+    healthCheckPath: /health/
+    envVars:
+      - key: DJANGO_ENV
+        value: production
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: DJANGO_HSTS_INCLUDE_SUBDOMAINS
+        value: "True"
+      - key: DJANGO_HSTS_PRELOAD
+        value: "True"

@@ -21,7 +21,7 @@ The browser checks save desktop and mobile screenshots in `test-artifacts/`, alo
 
 ## Technology and architecture
 
-Python 3.11+, Django 5.2 LTS, SQLite, Django templates, vanilla JavaScript, WhiteNoise and Pillow. Playwright is an optional development dependency for browser checks.
+Python 3.11+, Django 5.2 LTS, SQLite for local development, PostgreSQL for production, Django templates, vanilla JavaScript, WhiteNoise and Pillow. Playwright is an optional development dependency for browser checks.
 
 ```text
 config/                  Settings, root URLs and WSGI entry point

@@ -107,3 +107,9 @@ class Payment(models.Model):
 
     class Meta:
         constraints = [models.CheckConstraint(condition=models.Q(amount__gt=0), name='payment_positive')]
+
+
+class StoredUpload(models.Model):
+    """Private logo bytes persisted in Invoice's database on ephemeral hosts."""
+    name = models.CharField(max_length=255, unique=True)
+    content = models.BinaryField()

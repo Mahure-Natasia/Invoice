@@ -1,0 +1,60 @@
+name: Invoice production checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: invoice_ci
+          POSTGRES_USER: invoice_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U invoice_test -d invoice_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DJANGO_ENV: production
+      DJANGO_DEBUG: "False"
+      DATABASE_URL: postgresql://invoice_test@127.0.0.1:5432/invoice_ci
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      DJANGO_HSTS_INCLUDE_SUBDOMAINS: "True"
+      DJANGO_HSTS_PRELOAD: "True"
+      PORT: "10000"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+      - name: Generate disposable CI secret
+        run: |
+          python -c "import secrets, os; open(os.environ['GITHUB_ENV'], 'a').write('DJANGO_SECRET_KEY=' + secrets.token_urlsafe(64) + '\n')"
+      - name: Production build
+        run: bash build.sh
+      - name: Migrations and regression tests on PostgreSQL
+        run: |
+          python manage.py migrate --noinput
+          python manage.py makemigrations --check --dry-run
+          python manage.py test --settings=config.test_settings --noinput
+          python scripts/check_production.py
+      - name: Verify Gunicorn, health and static files
+        run: |
+          bash start.sh > /tmp/invoice-gunicorn.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:10000/health/; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:10000/health/ | python -c "import sys,json; assert json.load(sys.stdin)['status'] == 'ok'"
+          curl --fail --silent -H 'X-Forwarded-Proto: https' http://127.0.0.1:10000/accounts/login/ > /tmp/invoice-login.html
+          python scripts/check_static_http.py
