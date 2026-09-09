@@ -1,6 +1,6 @@
 # Invoice on Render
 
-`render.yaml` defines only a separate **Free Invoice web service** from
+`render.yaml` defines only a separate **paid Invoice web service** (`0.5c-512mb`, $7/month) from
 `Mahure-Natasia/Invoice`, branch `main`, in Oregon. It does not create a database
 or upgrade a workspace. Automatic deploys are off for explicit rollout control.
 Never supply Saloon's database URL or change any Saloon resources.
@@ -20,13 +20,12 @@ and preload for the dedicated service hostname.
 Build: `bash build.sh` installs dependencies, checks production security settings,
 and collects compressed, hashed static files with WhiteNoise. Startup:
 `bash start.sh` migrates **Invoice's database only**, then starts Gunicorn on
-`0.0.0.0:$PORT` (one worker, two threads). Free web services have no separate
-pre-deploy command. `/health/` performs a read-only database probe and returns
+`0.0.0.0:$PORT` (one worker, two threads). Migrations run before Gunicorn starts accepting requests. `/health/` performs a read-only database probe and returns
 200 when available or 503 without private error details.
 
 Production business logos use `billing.storage.DatabaseStorage`, preserving the
 existing authenticated logo route and persisting upload bytes in Invoice's own
-PostgreSQL database instead of the Free service's temporary filesystem. Existing
+PostgreSQL database instead of the service's temporary filesystem. Existing
 local SQLite data and logos are not automatically imported. Build/start scripts
 create no demo data or administrator accounts. Register through the app after
 deployment; administrator access is a separate manual operation.
@@ -48,3 +47,12 @@ Require successful checks before deployment.
 For local migration smoke checks, use a disposable database via
 `DJANGO_SQLITE_PATH`; do not overwrite the existing local business database.
 SQLite testing alone does not verify PostgreSQL behavior.
+
+## Approved initial resources
+
+The approved configuration is Invoice web `0.5c-512mb` ($7/month) and a separate
+`invoicedb` PostgreSQL `0.1c-256mb` ($6/month), with 1 GB storage. Keep the workspace
+on Hobby. The paid web tier does not spin down when idle and does not consume
+the workspace Free web instance-hour pool. Do not enable paid add-ons, storage
+autoscaling, or higher plans without separate approval. Usage overages and taxes
+may apply. Saloon and `saloondb` must never be changed or used by Invoice.

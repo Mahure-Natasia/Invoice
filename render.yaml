@@ -1,9 +1,9 @@
-# Database creation requires separate approval; this Blueprint creates only Invoice web.
+# Invoice only: approved paid web plan; database is provisioned separately.
 services:
   - type: web
     name: invoice
     runtime: python
-    plan: free
+    plan: 0.5c-512mb
     region: oregon
     repo: https://github.com/Mahure-Natasia/Invoice
     branch: main
