@@ -34,7 +34,9 @@ class AccountTests(TestCase):
             response = self.client.get('/business/logo/')
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'image/png')
-            response.close()
+            # Consume the test client's stream so it closes the response without
+            # closing the PostgreSQL connection inside TestCase's transaction.
+            self.assertTrue(b''.join(response.streaming_content))
             self.client.force_login(User.objects.create_user('another'))
             self.assertEqual(self.client.get('/business/logo/').status_code, 404)
             self.client.force_login(self.user)
